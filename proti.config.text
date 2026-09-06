@@ -1,31 +1,47 @@
-
 proto/ecommerce.proto
  — The contract (service and message definitions)
 
-
 src/data/mockData.ts
- — The sample data store
+ — In-memory datastore and fixtures
 
+src/services/grpc/handlers.ts
+ — gRPC service implementation of the 4 RPC patterns
 
-src/grpc/handlers.ts
- — Server logic implementing the 4 RPC patterns
+src/services/grpc/server.ts
+ — gRPC server setup and port binding (:50051)
 
+src/services/grpc/proto.ts
+ — Dynamic protobuf definition loader
 
-src/grpc/server.ts
- — gRPC server setup and port binding (50051)
+src/services/grpc/types.ts
+ — TypeScript contracts for protobuf messages
 
+src/clients/grpc/index.ts
+ — Typed gRPC client stubs and streaming wrappers
 
-src/grpc/client.ts
- — Client stubs and TypeScript wrappers
+src/gateway/app.ts
+ — Express application setup and middleware
 
+src/gateway/routes/api.ts
+ — HTTP/SSE routes bridging to gRPC client (/api/grpc/*)
 
-src/testRunner.ts
- — CLI script testing all 4 patterns directly
+src/gateway/routes/web.ts
+ — SSR routes (/ and /static)
 
+src/ssr/App.tsx
+ — React 19 interactive explorer component
+
+src/ssr/client.tsx
+ — Browser hydration entrypoint
+
+src/ssr/render.ts
+ — SSR rendering helper (@scaflo/node-react-wrapper)
+
+src/test/testRunner.ts
+ — CLI automated integration test suite
 
 src/server.ts
- — Express API gateway bridging HTTP/SSE to gRPC (3000)
-
+ — Unified bootstrap entrypoint (starts gRPC + Gateway)
 
 public/index.html
- — Interactive browser UI
+ — Static architecture reference companion page

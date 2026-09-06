@@ -7,10 +7,10 @@ export function createGrpcServer(): grpc.Server {
   const server = new grpc.Server();
 
   const handlers: InventoryServiceHandlers = {
-    GetProduct: getProduct,    // Unary
-    TrackOrder: trackOrder,    // Server Streaming
-    RecordMetrics: recordMetrics, // Client Streaming
-    LiveSupport: liveSupport,   // Bidirectional Streaming
+    GetProduct: getProduct,
+    TrackOrder: trackOrder,
+    RecordMetrics: recordMetrics,
+    LiveSupport: liveSupport,
   };
 
   server.addService(proto.ecommerce.InventoryService.service, handlers);
@@ -24,14 +24,11 @@ export function startGrpcServer(port: number = 50051): Promise<grpc.Server> {
 
     server.bindAsync(
       `0.0.0.0:${port}`,
-      grpc.ServerCredentials.createInsecure(), // no TLS — use createSsl() in prod
+      grpc.ServerCredentials.createInsecure(),
       (err, boundPort) => {
         if (err) { reject(err); return; }
-        console.log(`\n🚀 gRPC Server running on port ${boundPort}`);
-        console.log("   ├── [Unary]         GetProduct");
-        console.log("   ├── [Server Stream] TrackOrder");
-        console.log("   ├── [Client Stream] RecordMetrics");
-        console.log("   └── [Bidi Stream]   LiveSupport\n");
+        // eslint-disable-next-line no-console
+        console.log(`[grpc] server listening on :${boundPort}`);
         resolve(server);
       }
     );

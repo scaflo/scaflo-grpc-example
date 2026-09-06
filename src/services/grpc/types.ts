@@ -1,15 +1,5 @@
-// ═══════════════════════════════════════════════════════
-//  gRPC Contract & Service Type Definitions
-//
-//  Mirrors proto/ecommerce.proto and provides strongly typed
-//  interfaces for client stubs, server handlers, and payloads.
-// ═══════════════════════════════════════════════════════
-
 import type * as grpc from "@grpc/grpc-js";
 
-// ─────────────────────────────────────────────
-//  Enum Definitions
-// ─────────────────────────────────────────────
 export enum OrderStatus {
   ORDER_STATUS_UNSPECIFIED = 0,
   ORDER_STATUS_RECEIVED = 1,
@@ -21,9 +11,7 @@ export enum OrderStatus {
   ORDER_STATUS_FAILED = 7,
 }
 
-// ─────────────────────────────────────────────
-//  Message Types (Pattern 1: Unary)
-// ─────────────────────────────────────────────
+// Pattern 1: Unary
 export interface GetProductRequest {
   product_id: string;
 }
@@ -37,9 +25,7 @@ export interface GetProductResponse {
   description: string;
 }
 
-// ─────────────────────────────────────────────
-//  Message Types (Pattern 2: Server Streaming)
-// ─────────────────────────────────────────────
+// Pattern 2: Server Streaming
 export interface TrackOrderRequest {
   order_id: string;
 }
@@ -52,9 +38,7 @@ export interface TrackOrderResponse {
   progress: number;
 }
 
-// ─────────────────────────────────────────────
-//  Message Types (Pattern 3: Client Streaming)
-// ─────────────────────────────────────────────
+// Pattern 3: Client Streaming
 export interface RecordMetricsRequest {
   metric_name: string;
   value: number;
@@ -71,9 +55,7 @@ export interface RecordMetricsResponse {
   processed_at: string;
 }
 
-// ─────────────────────────────────────────────
-//  Message Types (Pattern 4: Bidirectional Streaming)
-// ─────────────────────────────────────────────
+// Pattern 4: Bidirectional Streaming
 export interface LiveSupportRequest {
   sender: string;
   text: string;
@@ -88,9 +70,7 @@ export interface LiveSupportResponse {
   is_bot: boolean;
 }
 
-// ─────────────────────────────────────────────
-//  Client Stub Interface
-// ─────────────────────────────────────────────
+// Client Stub Interface
 export interface InventoryServiceClient extends grpc.Client {
   GetProduct(
     argument: GetProductRequest,
@@ -133,9 +113,7 @@ export interface InventoryServiceClient extends grpc.Client {
   ): grpc.ClientDuplexStream<LiveSupportRequest, LiveSupportResponse>;
 }
 
-// ─────────────────────────────────────────────
-//  Server Handlers Interface
-// ─────────────────────────────────────────────
+// Server Handlers Interface
 export interface InventoryServiceHandlers extends grpc.UntypedServiceImplementation {
   GetProduct: grpc.handleUnaryCall<GetProductRequest, GetProductResponse>;
   TrackOrder: grpc.handleServerStreamingCall<TrackOrderRequest, TrackOrderResponse>;
@@ -143,9 +121,6 @@ export interface InventoryServiceHandlers extends grpc.UntypedServiceImplementat
   LiveSupport: grpc.handleBidiStreamingCall<LiveSupportRequest, LiveSupportResponse>;
 }
 
-// ─────────────────────────────────────────────
-//  Proto Package Definition Interface
-// ─────────────────────────────────────────────
 export interface InventoryServiceClientConstructor {
   new (
     address: string,

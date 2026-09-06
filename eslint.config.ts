@@ -34,7 +34,7 @@ export default defineConfig([
       ],
 
       eqeqeq: ["error", "always"],
-      "no-console": "warn",
+      "no-console": ["warn", { allow: ["warn", "error"] }],
       "no-var": "error",
       "prefer-const": "error",
 

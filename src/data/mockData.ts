@@ -1,11 +1,3 @@
-// ═══════════════════════════════════════════════════════
-//  STATIC IN-MEMORY MOCK DATA
-//  No database needed — pure data to focus on gRPC concepts
-// ═══════════════════════════════════════════════════════
-
-// ─────────────────────────────────────────────
-//  Types
-// ─────────────────────────────────────────────
 export interface Product {
   product_id: string;
   name: string;
@@ -22,9 +14,6 @@ export interface Order {
   customer: string;
 }
 
-// ─────────────────────────────────────────────
-//  Products (used in Unary RPC)
-// ─────────────────────────────────────────────
 export const PRODUCTS: Record<string, Product> = {
   "P001": {
     product_id: "P001",
@@ -68,16 +57,12 @@ export const PRODUCTS: Record<string, Product> = {
   },
 };
 
-// ─────────────────────────────────────────────
-//  Orders (used in Server Streaming RPC)
-// ─────────────────────────────────────────────
 export const ORDERS: Record<string, Order> = {
   "ORD-001": { order_id: "ORD-001", product_id: "P001", quantity: 2, customer: "Alice" },
   "ORD-002": { order_id: "ORD-002", product_id: "P003", quantity: 1, customer: "Bob" },
   "ORD-003": { order_id: "ORD-003", product_id: "P005", quantity: 3, customer: "Carol" },
 };
 
-// Order lifecycle stages with delay and progress for Server Streaming simulation
 export const ORDER_STAGES = [
   { status: 1, label: "RECEIVED",         message: "Your order has been received and confirmed.",        progressPct: 10, delayMs: 500  },
   { status: 2, label: "PROCESSING",       message: "Payment verified. Picking items from warehouse.",    progressPct: 30, delayMs: 1000 },
@@ -87,10 +72,6 @@ export const ORDER_STAGES = [
   { status: 6, label: "DELIVERED",        message: "Package delivered successfully.",                    progressPct: 100, delayMs: 500 },
 ];
 
-// ─────────────────────────────────────────────
-//  Bot Replies (used in Bidirectional RPC)
-// ─────────────────────────────────────────────
-// Keyword → bot reply mapping for live support simulation
 export const BOT_REPLIES: Record<string, string> = {
   hello:      "Hello. How can I help you today?",
   hi:         "Hello. Welcome to support. What do you need help with?",
@@ -113,9 +94,6 @@ export function getBotReply(userText: string): string {
   return `I understand you said: "${userText}". Let me connect you to a human agent for better assistance.`;
 }
 
-// ─────────────────────────────────────────────
-//  Helpers
-// ─────────────────────────────────────────────
 export function findProduct(id: string): Product | undefined {
   return PRODUCTS[id];
 }

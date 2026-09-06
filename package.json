@@ -7,9 +7,9 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "build:client": "esbuild src/client.tsx --bundle --format=esm --outfile=public/client.js --minify --define:process.env.NODE_ENV='\"production\"'",
+    "build:client": "esbuild src/ssr/client.tsx --bundle --format=esm --outfile=public/client.js --minify --define:process.env.NODE_ENV='\"production\"'",
     "build": "pnpm run build:client && tsup",
-    "test:grpc": "tsx src/testRunner.ts",
+    "test:grpc": "tsx src/test/testRunner.ts",
     "lint": "eslint"
   },
   "keywords": [],

@@ -46,5 +46,8 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-  }
+    "noEmit": true
+  },
+  "include": ["src/**/*", "eslint.config.ts", "tsup.config.ts"],
+  "exclude": ["node_modules", "dist", "public"]
 }

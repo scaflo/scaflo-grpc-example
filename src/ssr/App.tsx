@@ -54,7 +54,7 @@ export default function App(): React.JSX.Element {
     }
   };
 
-  // ── Call Pattern 1: Unary ──
+  // Call Pattern 1: Unary
   const handleCallUnary = async () => {
     const id = productId.trim() || "P001";
     setUnaryLoading(true);
@@ -77,7 +77,7 @@ export default function App(): React.JSX.Element {
     }
   };
 
-  // ── Call Pattern 2: Server Streaming ──
+  // Call Pattern 2: Server Streaming
   const handleCallServerStream = () => {
     const id = orderId.trim() || "ORD-001";
     if (eventSourceRef.current) {
@@ -131,7 +131,7 @@ export default function App(): React.JSX.Element {
     };
   }, []);
 
-  // ── Call Pattern 3: Client Streaming ──
+  // Call Pattern 3: Client Streaming
   const handleCallClientStream = async () => {
     let payload;
     try {
@@ -163,7 +163,7 @@ export default function App(): React.JSX.Element {
     }
   };
 
-  // ── Call Pattern 4: Bidi Streaming ──
+  // Call Pattern 4: Bidi Streaming
   const handleCallBidiStream = async () => {
     let payload;
     try {
@@ -197,7 +197,7 @@ export default function App(): React.JSX.Element {
 
   return (
     <div className="app-container">
-      {/* ── HEADER ── */}
+      {/* Header */}
       <header className="header">
         <div className="header-inner">
           <div className="brand">
@@ -214,7 +214,7 @@ export default function App(): React.JSX.Element {
         </div>
       </header>
 
-      {/* ── FILTER TABS ── */}
+      {/* Filter Tabs */}
       <div className="filter-bar">
         <button className={`filter-btn ${activeTab === "all" ? "active" : ""}`} onClick={() => setActiveTab("all")}>All Patterns</button>
         <button className={`filter-btn ${activeTab === "unary" ? "active" : ""}`} onClick={() => setActiveTab("unary")}>Unary RPC</button>
@@ -223,10 +223,10 @@ export default function App(): React.JSX.Element {
         <button className={`filter-btn ${activeTab === "bidi" ? "active" : ""}`} onClick={() => setActiveTab("bidi")}>Bidirectional Streaming</button>
       </div>
 
-      {/* ── GRID CONTENT ── */}
+      {/* Grid Content */}
       <div className="grid-container">
 
-        {/* ── PATTERN 1: UNARY ── */}
+        {/* Pattern 1: Unary */}
         {(activeTab === "all" || activeTab === "unary") && (
           <div className="card" id="card-unary">
             <div className="card-top">
@@ -269,7 +269,7 @@ export default function App(): React.JSX.Element {
                   placeholder="Product ID (e.g. P001)"
                 />
                 <button className="btn-primary" onClick={handleCallUnary} disabled={unaryLoading}>
-                  {unaryLoading ? "Calling..." : "Execute"}
+                  {unaryLoading ? "Sending..." : "Send Request"}
                 </button>
               </div>
 
@@ -295,7 +295,7 @@ export default function App(): React.JSX.Element {
                       {JSON.stringify(unaryOutput.data ?? { error: unaryOutput.error }, null, 2)}
                     </pre>
                   ) : (
-                    <span style={{ color: "var(--text-muted)" }}>// Dispatch an RPC call to inspect the server response.</span>
+                    <span style={{ color: "var(--text-muted)" }}>No response yet. Send a request to see output.</span>
                   )}
                 </div>
               </div>
@@ -303,7 +303,7 @@ export default function App(): React.JSX.Element {
           </div>
         )}
 
-        {/* ── PATTERN 2: SERVER STREAMING ── */}
+        {/* Pattern 2: Server Streaming */}
         {(activeTab === "all" || activeTab === "ss") && (
           <div className="card" id="card-ss">
             <div className="card-top">
@@ -379,7 +379,7 @@ export default function App(): React.JSX.Element {
                       </div>
                     ))
                   ) : (
-                    <span style={{ color: "var(--text-muted)" }}>// Streamed lifecycle events will be rendered sequentially here.</span>
+                    <span style={{ color: "var(--text-muted)" }}>No stream events yet. Click Subscribe to start.</span>
                   )}
                 </div>
               </div>
@@ -387,7 +387,7 @@ export default function App(): React.JSX.Element {
           </div>
         )}
 
-        {/* ── PATTERN 3: CLIENT STREAMING ── */}
+        {/* Pattern 3: Client Streaming */}
         {(activeTab === "all" || activeTab === "cs") && (
           <div className="card" id="card-cs">
             <div className="card-top">
@@ -472,7 +472,7 @@ export default function App(): React.JSX.Element {
                       {JSON.stringify(csOutput.data ?? { error: csOutput.error }, null, 2)}
                     </pre>
                   ) : (
-                    <span style={{ color: "var(--text-muted)" }}>// Stream items will be ingested and aggregated by the gRPC server.</span>
+                    <span style={{ color: "var(--text-muted)" }}>No summary yet. Click Stream Metrics to run.</span>
                   )}
                 </div>
               </div>
@@ -480,7 +480,7 @@ export default function App(): React.JSX.Element {
           </div>
         )}
 
-        {/* ── PATTERN 4: BIDI STREAMING ── */}
+        {/* Pattern 4: Bidi Streaming */}
         {(activeTab === "all" || activeTab === "bidi") && (
           <div className="card" id="card-bidi">
             <div className="card-top">
@@ -532,14 +532,14 @@ export default function App(): React.JSX.Element {
 
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <button className="btn-primary" onClick={handleCallBidiStream} disabled={bidiLoading}>
-                  {bidiLoading ? "Conversing..." : "Execute Session"}
+                  {bidiLoading ? "Sending..." : "Send Messages"}
                 </button>
               </div>
 
               <div className="console-box">
                 <div className="console-topbar">
                   <div className="console-label">
-                    <span>Dialogue Audit</span>
+                    <span>Chat Log</span>
                     {bidiChat.length > 0 && <span className="status-indicator status-success">{bidiChat.length} events</span>}
                   </div>
                   <div className="console-controls">
@@ -556,7 +556,7 @@ export default function App(): React.JSX.Element {
                       </div>
                     ))
                   ) : (
-                    <span style={{ color: "var(--text-muted)" }}>// Full-duplex conversational events will appear here.</span>
+                    <span style={{ color: "var(--text-muted)" }}>No messages yet. Click Send Messages to start session.</span>
                   )}
                 </div>
               </div>
@@ -568,10 +568,10 @@ export default function App(): React.JSX.Element {
 
       {toastMsg && <div className="toast-bar">{toastMsg}</div>}
 
-      {/* ── FOOTER ── */}
+      {/* Footer */}
       <footer className="footer">
         <div>
-          <span>gRPC Architecture Showcase · React SSR Gateway</span>
+          <span>gRPC Example · Express Gateway &amp; React SSR</span>
         </div>
         <div>
           <a href="/static">View Static Schema Reference</a>
