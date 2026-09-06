@@ -1,3 +1,4 @@
+import readline from 'readline';
 import * as grpc2 from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 import path from 'path';
@@ -8,7 +9,7 @@ import { renderSSR } from '@scaflo/node-react-wrapper';
 import { useState, useRef, useEffect } from 'react';
 import { jsxs, jsx } from 'react/jsx-runtime';
 
-// src/services/grpc/server.ts
+// src/server.ts
 
 // src/data/mockData.ts
 var PRODUCTS = {
@@ -746,27 +747,20 @@ webRouter.get("/", (_req, res) => {
 webRouter.get("/static", (_req, res) => {
   res.sendFile(path.resolve(process.cwd(), "public/index.html"));
 });
-function createStub(address = "localhost:50051") {
-  return new proto.ecommerce.InventoryService(
-    address,
-    grpc2.credentials.createInsecure()
-  );
-}
-var _stub = null;
-function getStub() {
-  if (!_stub) _stub = createStub();
-  return _stub;
-}
+var client = new proto.ecommerce.InventoryService(
+  process.env.GRPC_ADDRESS ?? "localhost:50051",
+  grpc2.credentials.createInsecure()
+);
 function getProduct2(productId) {
   return new Promise((resolve, reject) => {
-    getStub().GetProduct({ product_id: productId }, (err, response) => {
+    client.GetProduct({ product_id: productId }, (err, response) => {
       if (err) reject(err);
       else resolve(response);
     });
   });
 }
 function trackOrder2(orderId, onData, onEnd, onError) {
-  const stream = getStub().TrackOrder({ order_id: orderId });
+  const stream = client.TrackOrder({ order_id: orderId });
   stream.on("data", onData);
   stream.on("end", onEnd);
   stream.on("error", onError);
@@ -774,7 +768,7 @@ function trackOrder2(orderId, onData, onEnd, onError) {
 }
 function recordMetrics2(pings) {
   return new Promise((resolve, reject) => {
-    const stream = getStub().RecordMetrics((err, summary) => {
+    const stream = client.RecordMetrics((err, summary) => {
       if (err) reject(err);
       else resolve(summary);
     });
@@ -785,7 +779,7 @@ function recordMetrics2(pings) {
   });
 }
 function openLiveSupport() {
-  return getStub().LiveSupport();
+  return client.LiveSupport();
 }
 
 // src/gateway/routes/api.ts
@@ -1004,10 +998,34 @@ function createGatewayApp() {
 // src/server.ts
 var PORT = 3e3;
 var GRPC_PORT = 50051;
-startGrpcServer(GRPC_PORT).then(() => {
+startGrpcServer(GRPC_PORT).then((grpcServer) => {
   const app = createGatewayApp();
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`[gateway] listening on http://localhost:${PORT}`);
+  });
+  let isShuttingDown = false;
+  const shutdown = () => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    try {
+      grpcServer.forceShutdown();
+      server.close(() => {
+        process.exit(0);
+      });
+      setTimeout(() => process.exit(0), 1e3).unref();
+    } catch {
+      process.exit(0);
+    }
+  };
+  if (process.platform === "win32" && process.stdin.isTTY) {
+    readline.createInterface({ input: process.stdin, output: process.stdout }).on("SIGINT", shutdown);
+  }
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
+  process.on("SIGBREAK", shutdown);
+  process.on("SIGHUP", shutdown);
+  process.on("exit", () => {
+    grpcServer.forceShutdown();
   });
 }).catch((err) => {
   console.error("Failed to start gRPC server:", err);

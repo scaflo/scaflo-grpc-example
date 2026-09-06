@@ -5,8 +5,8 @@ import {
   trackOrder,
   recordMetrics,
   openLiveSupport,
-  type MetricPing,
-  type ChatMessage,
+  type RecordMetricsRequest,
+  type LiveSupportResponse,
 } from "../../clients/grpc/index.js";
 
 export const apiRouter: Router = Router();
@@ -103,7 +103,7 @@ apiRouter.post("/metrics", async (req, res) => {
   }
 
   for (let i = 0; i < body.pings.length; i++) {
-    const ping = body.pings[i] as Partial<MetricPing> | null | undefined;
+    const ping = body.pings[i] as Partial<RecordMetricsRequest> | null | undefined;
     if (!ping || typeof ping !== "object" || typeof ping.value !== "number" || isNaN(ping.value)) {
       res.status(400).json({
         error: `Invalid ping at index ${i}: 'value' must be a valid number.`,
@@ -112,7 +112,7 @@ apiRouter.post("/metrics", async (req, res) => {
     }
   }
 
-  const pings: MetricPing[] = (body.pings as Partial<MetricPing>[]).map((p) => ({
+  const pings: RecordMetricsRequest[] = (body.pings as Partial<RecordMetricsRequest>[]).map((p) => ({
     metric_name: p.metric_name?.trim() || "unnamed_metric",
     value: Number(p.value),
     unit: p.unit?.trim() || "",
@@ -159,7 +159,7 @@ apiRouter.post("/support/chat", (req, res) => {
   const sender = typeof body.sender === "string" && body.sender.trim() ? body.sender.trim() : "User";
 
   const stream = openLiveSupport();
-  const conversation: ChatMessage[] = [];
+  const conversation: LiveSupportResponse[] = [];
   let msgIndex = 0;
   let isFinished = false;
   let clientEnded = false;

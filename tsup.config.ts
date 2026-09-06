@@ -8,5 +8,4 @@ export default defineConfig({
     treeshake: "recommended",
     format: ["esm"],
     bundle: true,
-    onSuccess: 'node dist/server.js',
 })
