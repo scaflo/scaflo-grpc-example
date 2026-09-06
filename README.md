@@ -1,90 +1,164 @@
 # Scaflo gRPC Example
 
-A production-grade, full-stack showcase demonstrating all **four gRPC communication patterns** built with **Node.js**, **TypeScript**, **Protocol Buffers v3**, an **Express API Gateway**, and **React 19 Server-Side Rendering** powered by [`@scaflo/node-react-wrapper`](https://github.com/scaflo/node-react-wrapper).
+A production-ready reference application showcasing all **four gRPC communication patterns** in **Node.js** and **TypeScript**, bridged to a **React 19 Server-Side Rendered (SSR)** web interface via an **Express API Gateway**.
+
+[![gRPC](https://img.shields.io/badge/gRPC-v1.14-244c5a?logo=grpc)](https://grpc.io/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-19.x-61dafb?logo=react)](https://react.dev/)
+[![Express](https://img.shields.io/badge/Express-5.x-000000?logo=express)](https://expressjs.com/)
+[![License](https://img.shields.io/badge/license-ISC-green.svg)](LICENSE)
 
 ---
 
-## Architecture Overview
+## Table of Contents
+
+- [Why This Project Exists](#why-this-project-exists)
+- [Architecture & Data Flow](#architecture--data-flow)
+- [The 4 gRPC Communication Patterns](#the-4-grpc-communication-patterns)
+  - [1. Unary RPC (`GetProduct`)](#1-unary-rpc-getproduct)
+  - [2. Server Streaming RPC (`TrackOrder`)](#2-server-streaming-rpc-trackorder)
+  - [3. Client Streaming RPC (`RecordMetrics`)](#3-client-streaming-rpc-recordmetrics)
+  - [4. Bidirectional Streaming RPC (`LiveSupport`)](#4-bidirectional-streaming-rpc-livesupport)
+- [Quick Start](#quick-start)
+- [Project Layout](#project-layout)
+- [CLI Verification Suite](#cli-verification-suite)
+- [API Gateway Reference (cURL)](#api-gateway-reference-curl)
+- [Troubleshooting & Common Gotchas](#troubleshooting--common-gotchas)
+- [Tech Stack](#tech-stack)
+
+---
+
+## Why This Project Exists
+
+Standard web browsers cannot speak raw HTTP/2 gRPC wire format directly without specialized proxies or gRPC-Web framing. 
+
+This repository demonstrates the **API Gateway Pattern**:
+1. A **gRPC Server** (`:50051`) implements high-performance, strictly typed RPC services defined in `.proto` files.
+2. An **Express Gateway** (`:3000`) translates browser-friendly HTTP requests (REST, JSON, Server-Sent Events) into binary gRPC calls over HTTP/2.
+3. A **React 19 SSR Engine** (via [`@scaflo/node-react-wrapper`](https://github.com/scaflo/node-react-wrapper)) serves an interactive, hydrated developer console without requiring full Next.js or Vite infrastructure.
+
+---
+
+## Architecture & Data Flow
 
 ```
-┌───────────────────────────────────────────────────────────┐
-│                    Web Browser Client                     │
-│    (React 19 Hydrated UI  ·  Interactive Developer Console)│
-└──────────────▲─────────────────────────────▲──────────────┘
-               │ HTTP GET / POST             │ Server-Sent Events
-               ▼                             ▼
-┌───────────────────────────────────────────────────────────┐
-│              Express API Gateway (Port 3000)              │
-│    • SSR Render Engine (@scaflo/node-react-wrapper)        │
-│    • HTTP to gRPC Protocol Bridge & Request Validation    │
-│    • Real-time SSE Translation for Server Streaming       │
-└──────────────────────────────▲────────────────────────────┘
-                               │
-                               │ HTTP/2 · Protobuf Binary Wire Format
-                               ▼
-┌───────────────────────────────────────────────────────────┐
-│                 gRPC Server (Port 50051)                  │
-│    • Service: ecommerce.InventoryService                  │
-│    • Implements: Unary, Server/Client/Bidi Streams        │
-└───────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                             Web Browser Client                              │
+│              React 19 Interactive Developer Console (Port 3000)             │
+└───────────────────────▲─────────────────────────────▲───────────────────────┘
+                        │ Standard HTTP (JSON)        │ Server-Sent Events (SSE)
+                        ▼                             ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       Express Gateway (Port 3000)                           │
+│   • Server-Side Rendering via @scaflo/node-react-wrapper                    │
+│   • Input schema validation and parameter trimming                          │
+│   • Protocol translation: HTTP JSON ↔ gRPC Protobuf payloads                │
+│   • Stream lifecycle management and connection abort cleanup                │
+└───────────────────────────────────────▲─────────────────────────────────────┘
+                                        │
+                                        │ Multiplexed HTTP/2 Streams
+                                        │ (gRPC Binary Wire Protocol)
+                                        ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         gRPC Core (Port 50051)                              │
+│   • Service: ecommerce.InventoryService                                     │
+│   • Schema: proto/ecommerce.proto                                           │
+│   • Implements: Unary, Server Streaming, Client Streaming, Duplex Chat     │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## The 4 gRPC Communication Patterns
 
-This example implements the complete lifecycle for all 4 gRPC streaming topologies defined in [`proto/ecommerce.proto`](proto/ecommerce.proto):
+All patterns are defined in [`proto/ecommerce.proto`](proto/ecommerce.proto) and implemented end-to-end:
 
-| # | Pattern | gRPC Method | HTTP Gateway Endpoint | Description |
-|---|---|---|---|---|
-| **1** | **Unary RPC** | `GetProduct` | `GET /api/grpc/product/:id` | Single request yields a single response over HTTP/2. Ideal for low-latency lookups. |
-| **2** | **Server Streaming** | `TrackOrder` | `GET /api/grpc/track/:orderId` | Single request opens a persistent stream; server pushes stage updates in real time via Server-Sent Events (SSE). |
-| **3** | **Client Streaming** | `RecordMetrics` | `POST /api/grpc/metrics` | Client streams sequential telemetry pings; server ingests all chunks and returns an aggregated summary. |
-| **4** | **Bidirectional Streaming** | `LiveSupport` | `POST /api/grpc/support/chat` | Independent, full-duplex read/write stream operating simultaneously over a single HTTP/2 connection. |
+### 1. Unary RPC (`GetProduct`)
+- **Concept**: Classic point-to-point remote procedure call. Single request $\rightarrow$ single response.
+- **Use Case**: CRUD lookups, authentication, standard transactional queries.
+- **Protobuf Signature**:
+  ```protobuf
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+  ```
+- **Gateway Route**: `GET /api/grpc/product/:id`
+
+### 2. Server Streaming RPC (`TrackOrder`)
+- **Concept**: The client sends a single request; the server keeps the channel open and pushes a continuous stream of events.
+- **Use Case**: Live order/shipment tracking, stock tickers, notification feeds, log streaming.
+- **Web Solution**: The gateway bridges the gRPC readable stream into **Server-Sent Events (SSE)** so browsers can listen natively via `EventSource`.
+- **Protobuf Signature**:
+  ```protobuf
+  rpc TrackOrder(TrackOrderRequest) returns (stream TrackOrderResponse);
+  ```
+- **Gateway Route**: `GET /api/grpc/track/:orderId`
+
+### 3. Client Streaming RPC (`RecordMetrics`)
+- **Concept**: The client uploads multiple messages over time; once done, the server aggregates the stream and returns a single summary response.
+- **Use Case**: Telemetry ingestion, IoT sensor pings, bulk file chunk uploads, batch data sync.
+- **Protobuf Signature**:
+  ```protobuf
+  rpc RecordMetrics(stream RecordMetricsRequest) returns (RecordMetricsResponse);
+  ```
+- **Gateway Route**: `POST /api/grpc/metrics`
+
+### 4. Bidirectional Streaming RPC (`LiveSupport`)
+- **Concept**: Full-duplex communication. Both client and server read and write independently over the same HTTP/2 stream simultaneously.
+- **Use Case**: Live customer support, collaborative editing, gaming state exchange.
+- **Protobuf Signature**:
+  ```protobuf
+  rpc LiveSupport(stream LiveSupportRequest) returns (stream LiveSupportResponse);
+  ```
+- **Gateway Route**: `POST /api/grpc/support/chat`
 
 ---
 
-## Protobuf Service Contract
+## Quick Start
 
-Defined in [`proto/ecommerce.proto`](proto/ecommerce.proto):
-
-```protobuf
-syntax = "proto3";
-
-package ecommerce;
-
-service InventoryService {
-  rpc GetProduct     (GetProductRequest)           returns (GetProductResponse);          // Unary
-  rpc TrackOrder     (TrackOrderRequest)           returns (stream TrackOrderResponse);   // Server Streaming
-  rpc RecordMetrics  (stream RecordMetricsRequest) returns (RecordMetricsResponse);       // Client Streaming
-  rpc LiveSupport    (stream LiveSupportRequest)   returns (stream LiveSupportResponse);  // Bidirectional
-}
+### 1. Install Dependencies
+```bash
+pnpm install
 ```
+
+### 2. Build Client Bundle
+Builds the self-contained React 19 hydration bundle via `esbuild`:
+```bash
+pnpm run build:client
+```
+
+### 3. Start Development Server
+Starts the gRPC backend (`:50051`) and the Express SSR gateway (`:3000`) with auto-reload:
+```bash
+pnpm dev
+```
+
+### 4. Open in Browser
+- **Live Interactive Console**: [http://localhost:3000](http://localhost:3000)
+- **Static Contract Reference**: [http://localhost:3000/static](http://localhost:3000/static)
 
 ---
 
-## Project Structure
+## Project Layout
 
 ```
-Scaflo-grpc-example/
+scaflo-grpc-example/
 ├── proto/
 │   └── ecommerce.proto        # Protobuf schema definition (InventoryService)
 ├── src/
 │   ├── grpc/
 │   │   ├── proto.ts           # Dynamic Protobuf loader (@grpc/proto-loader)
-│   │   ├── types.ts           # TypeScript interfaces matching Protobuf definitions
-│   │   ├── server.ts          # gRPC Server implementation on port 50051
-│   │   ├── client.ts          # Strongly typed client stubs consuming gRPC methods
-│   │   └── handlers.ts        # Service method handler implementations
+│   │   ├── types.ts           # TypeScript type definitions mirror for proto messages
+│   │   ├── server.ts          # gRPC Server initialization (0.0.0.0:50051)
+│   │   ├── client.ts          # Typed client stubs consuming the gRPC server
+│   │   └── handlers.ts        # Business logic handlers for all 4 RPC patterns
 │   ├── data/
-│   │   └── mockData.ts        # In-memory datasets (products, orders, bot replies)
-│   ├── App.tsx                # Interactive React 19 UI component
+│   │   └── mockData.ts        # In-memory mock databases (products, orders, bot responses)
+│   ├── App.tsx                # Interactive React 19 developer console component
 │   ├── client.tsx             # Client hydration entry point (hydrateRoot)
-│   ├── server.ts              # Express API Gateway & SSR server on port 3000
-│   └── testRunner.ts          # CLI automated test suite for all 4 patterns
+│   ├── server.ts              # Express API Gateway, SSR server, & route controllers
+│   └── testRunner.ts          # CLI automated test suite testing all 4 patterns
 ├── public/
-│   ├── styles.css             # Developer console design system
-│   ├── client.js              # Bundled React client bundle (esbuild)
+│   ├── styles.css             # Dedicated design system for console and docs
+│   ├── client.js              # Bundled client asset for browser hydration (esbuild)
 │   └── index.html             # Static architecture reference companion page
 ├── package.json
 └── tsconfig.json
@@ -92,68 +166,29 @@ Scaflo-grpc-example/
 
 ---
 
-## Getting Started
+## CLI Verification Suite
 
-### Prerequisites
-
-- **Node.js**: v20.0.0 or later
-- **pnpm**: v9.0.0 or later (or npm / yarn)
-
-### Installation
-
-```bash
-pnpm install
-```
-
-### Build Client Bundle
-
-Compile and bundle the React client for browser hydration:
-
-```bash
-pnpm run build:client
-```
-
-### Run the Development Server
-
-Start both the **gRPC Core Server** (`:50051`) and the **Express API Gateway** (`:3000`) with automatic reload:
-
-```bash
-pnpm dev
-```
-
-Once running:
-- **Interactive React SSR Explorer**: Open [http://localhost:3000](http://localhost:3000)
-- **Static Schema Reference**: Open [http://localhost:3000/static](http://localhost:3000/static)
-
----
-
-## Testing via CLI Test Runner
-
-A standalone end-to-end test suite is included to verify all 4 gRPC patterns directly against the gRPC server:
+Verify all 4 gRPC patterns directly against the running server without a browser:
 
 ```bash
 pnpm test:grpc
 ```
 
-Expected output:
-- `GetProduct`: Valid product lookup and 404 handling.
-- `TrackOrder`: Sequential status events (`RECEIVED` → `PROCESSING` → `DELIVERED`).
-- `RecordMetrics`: Uploads 6 telemetry pings and returns mathematical aggregation.
-- `LiveSupport`: Full-duplex conversational session between user and bot.
+The test runner will execute:
+1. `GetProduct("P001")` $\rightarrow$ verifies Unary response payload.
+2. `GetProduct("P999")` $\rightarrow$ verifies gRPC `5 NOT_FOUND` error handling.
+3. `TrackOrder("ORD-002")` $\rightarrow$ streams all 6 fulfillment stages from 10% to 100%.
+4. `RecordMetrics([...])` $\rightarrow$ writes 6 metric pings and validates aggregated statistics.
+5. `LiveSupport()` $\rightarrow$ runs a full-duplex conversational session between user and bot.
 
 ---
 
-## HTTP Gateway API Reference
-
-You can query the gateway using any HTTP client or `curl`:
+## API Gateway Reference (cURL)
 
 ### 1. Unary RPC — Get Product
-
 ```bash
-curl http://localhost:3000/api/grpc/product/P001
+curl -s http://localhost:3000/api/grpc/product/P001
 ```
-
-Response:
 ```json
 {
   "pattern": "Unary RPC",
@@ -170,22 +205,20 @@ Response:
 ```
 
 ### 2. Server Streaming — Track Order (SSE)
-
 ```bash
 curl -N http://localhost:3000/api/grpc/track/ORD-001
 ```
-
-Response stream:
 ```
 data: {"pattern":"Server Streaming RPC","order_id":"ORD-001","status":"ORDER_STATUS_RECEIVED","progress":10}
+
 data: {"pattern":"Server Streaming RPC","order_id":"ORD-001","status":"ORDER_STATUS_PROCESSING","progress":30}
 ...
 data: {"pattern":"Server Streaming RPC","order_id":"ORD-001","status":"ORDER_STATUS_DELIVERED","progress":100}
+
 data: {"done":true}
 ```
 
 ### 3. Client Streaming — Record Metrics
-
 ```bash
 curl -X POST http://localhost:3000/api/grpc/metrics \
   -H "Content-Type: application/json" \
@@ -197,8 +230,6 @@ curl -X POST http://localhost:3000/api/grpc/metrics \
     ]
   }'
 ```
-
-Response:
 ```json
 {
   "pattern": "Client Streaming RPC",
@@ -215,7 +246,6 @@ Response:
 ```
 
 ### 4. Bidirectional Streaming — Live Support Chat
-
 ```bash
 curl -X POST http://localhost:3000/api/grpc/support/chat \
   -H "Content-Type: application/json" \
@@ -224,8 +254,6 @@ curl -X POST http://localhost:3000/api/grpc/support/chat \
     "messages": ["hello", "order", "ORD-001", "thanks"]
   }'
 ```
-
-Response:
 ```json
 {
   "pattern": "Bidirectional Streaming RPC",
@@ -241,26 +269,29 @@ Response:
 
 ---
 
-## Scripts & Commands
+## Troubleshooting & Common Gotchas
 
-| Command | Action |
-|---|---|
-| `pnpm dev` | Starts gRPC server & Express gateway with hot reload |
-| `pnpm run build:client` | Bundles React 19 client bundle to `public/client.js` via `esbuild` |
-| `pnpm test:grpc` | Executes the CLI end-to-end test suite for all 4 patterns |
-| `pnpm run lint` | Runs ESLint checks across the codebase |
-| `pnpm build` | Rebuilds client bundle and compiles server assets |
+### 1. `EADDRINUSE: address already in use 0.0.0.0:50051`
+If a background Node process is still holding port 50051, find and terminate it:
+```powershell
+# Windows PowerShell
+Get-NetTCPConnection -LocalPort 50051 | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
+```
+```bash
+# macOS / Linux
+lsof -ti:50051 | xargs kill -9
+```
+
+### 2. Browser Hydration Error (`Failed to resolve module specifier`)
+If you modify `src/App.tsx` or `src/client.tsx`, re-run `pnpm run build:client`. The client must be bundled with `esbuild` so `react` and `react-dom` are packaged directly into `public/client.js` rather than emitted as bare imports.
 
 ---
 
-## Technologies Used
+## Tech Stack
 
-- **gRPC Core**: [`@grpc/grpc-js`](https://www.npmjs.com/package/@grpc/grpc-js) & [`@grpc/proto-loader`](https://www.npmjs.com/package/@grpc/proto-loader)
-- **API Gateway**: [Express 5](https://expressjs.com/)
-- **Server-Side Rendering**: [`@scaflo/node-react-wrapper`](https://github.com/scaflo/node-react-wrapper)
-- **Frontend UI**: [React 19](https://react.dev/)
-- **Client Bundler**: [esbuild](https://esbuild.github.io/)
-- **Runtime & Execution**: [Node.js](https://nodejs.org/) & [tsx](https://github.com/privatenumber/tsx)
-- **Language**: [TypeScript](https://www.typescriptlang.org/)
-#   s c a f l o - g r p c - e x a m p l e  
- 
+- **Protocol Buffers**: Dynamic schema loading via [`@grpc/proto-loader`](https://www.npmjs.com/package/@grpc/proto-loader).
+- **gRPC Core**: Official pure JavaScript/TypeScript implementation [`@grpc/grpc-js`](https://www.npmjs.com/package/@grpc/grpc-js).
+- **API Gateway**: [Express 5](https://expressjs.com/).
+- **SSR Wrapper**: Lightweight server rendering via [`@scaflo/node-react-wrapper`](https://github.com/scaflo/node-react-wrapper).
+- **Client Bundler**: High-speed bundling via [esbuild](https://esbuild.github.io/).
+- **Testing**: Native CLI integration testing with [tsx](https://github.com/privatenumber/tsx).
