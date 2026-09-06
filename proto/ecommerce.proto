@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+// buf:lint:ignore PACKAGE_DIRECTORY_MATCH
+package ecommerce;
+
+service InventoryService {
+  rpc GetProduct     (GetProductRequest)           returns (GetProductResponse);          // Unary
+  rpc TrackOrder     (TrackOrderRequest)           returns (stream TrackOrderResponse);   // Server Streaming
+  rpc RecordMetrics  (stream RecordMetricsRequest) returns (RecordMetricsResponse);       // Client Streaming
+  rpc LiveSupport    (stream LiveSupportRequest)   returns (stream LiveSupportResponse);  // Bidi Streaming
+}
+
+// Unary
+message GetProductRequest {
+  string product_id = 1;
+}
+
+message GetProductResponse {
+  string product_id  = 1;
+  string name        = 2;
+  string category    = 3;
+  double price       = 4;
+  int32  stock       = 5;
+  string description = 6;
+}
+
+// Server Streaming
+message TrackOrderRequest {
+  string order_id = 1;
+}
+
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED      = 0;
+  ORDER_STATUS_RECEIVED         = 1;
+  ORDER_STATUS_PROCESSING       = 2;
+  ORDER_STATUS_PACKED           = 3;
+  ORDER_STATUS_SHIPPED          = 4;
+  ORDER_STATUS_OUT_FOR_DELIVERY = 5;
+  ORDER_STATUS_DELIVERED        = 6;
+  ORDER_STATUS_FAILED           = 7;
+}
+
+message TrackOrderResponse {
+  string      order_id  = 1;
+  OrderStatus status    = 2;
+  string      message   = 3;
+  string      timestamp = 4;
+  int32       progress  = 5; // 0–100
+}
+
+// Client Streaming
+message RecordMetricsRequest {
+  string metric_name = 1;
+  double value       = 2;
+  string unit        = 3;
+  string timestamp   = 4;
+}
+
+message RecordMetricsResponse {
+  int32  total_pings   = 1;
+  double average_value = 2;
+  double min_value     = 3;
+  double max_value     = 4;
+  double total_value   = 5;
+  string processed_at  = 6;
+}
+
+// Bidi Streaming
+message LiveSupportRequest {
+  string sender    = 1;
+  string text      = 2;
+  string timestamp = 3;
+  bool   is_bot    = 4;
+}
+
+message LiveSupportResponse {
+  string sender    = 1;
+  string text      = 2;
+  string timestamp = 3;
+  bool   is_bot    = 4;
+}

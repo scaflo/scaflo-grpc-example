@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gRPC Architecture Reference</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- ── HEADER ── -->
+    <header class="header">
+      <div class="header-inner">
+        <div class="brand">
+          <div class="brand-badge">gRPC</div>
+          <div class="brand-title">
+            <h1>Architecture &amp; Contract Reference</h1>
+            <p><span class="status-dot"></span> Static Schema Documentation · proto/ecommerce.proto</p>
+          </div>
+        </div>
+        <div class="header-meta">
+          <div class="meta-pill">Engine: <strong>Static Reference</strong></div>
+          <a href="/" class="nav-link-btn">Launch Interactive Explorer →</a>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── ARCHITECTURE OVERVIEW BANNER ── -->
+    <div style="padding: 20px 28px 0;">
+      <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+        <div>
+          <span style="font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--cyan); font-family: 'JetBrains Mono', monospace;">
+            Protocol Buffers v3 · InventoryService
+          </span>
+          <h2 style="font-size: 1.15rem; font-weight: 700; margin-top: 4px; color: var(--text-primary);">
+            Service Contracts &amp; Gateway Endpoints
+          </h2>
+          <p style="color: var(--text-secondary); font-size: 0.82rem; max-width: 780px; margin-top: 4px; line-height: 1.5;">
+            The gRPC backend listens on port <code class="font-mono" style="color:var(--emerald);">0.0.0.0:50051</code>.
+            Express operates on <code class="font-mono" style="color:var(--cyan);">:3000</code> as an HTTP API gateway, bridging web clients to typed RPC methods.
+          </p>
+        </div>
+        <a href="/" class="btn-primary" style="text-decoration: none; padding: 10px 18px; font-size: 0.85rem;">
+          Open Interactive Console
+        </a>
+      </div>
+    </div>
+
+    <!-- ── 4-PATTERN PROTOBUF CONTRACT SPECIFICATIONS ── -->
+    <div class="grid-container">
+      
+      <!-- Card 1: Unary RPC -->
+      <div class="card" id="card-unary">
+        <div class="card-top">
+          <div class="card-title-group">
+            <h2>
+              Unary RPC
+              <span class="pattern-badge badge-unary">GetProduct</span>
+            </h2>
+            <p>Single request produces a single response over HTTP/2.</p>
+          </div>
+        </div>
+        <div class="card-content">
+          <div class="contract-bar">
+            <div class="endpoint-display">
+              <span class="method-tag tag-get">GET</span>
+              <span>/api/grpc/product/<strong>:id</strong></span>
+            </div>
+            <span class="proto-sig">rpc GetProduct(GetProductRequest) returns (GetProductResponse)</span>
+          </div>
+          <div class="console-box">
+            <div class="console-topbar">
+              <span class="console-label">PROTOBUF DEFINITION</span>
+            </div>
+            <div class="console-content">
+<pre>// Unary Pattern
+message GetProductRequest {
+  string product_id = 1;
+}
+
+message GetProductResponse {
+  string product_id  = 1;
+  string name        = 2;
+  string category    = 3;
+  double price       = 4;
+  int32  stock       = 5;
+  string description = 6;
+}
+
+// Curl Test:
+curl http://localhost:3000/api/grpc/product/P001</pre>
+            </div>
+          </div>
+          <a href="/#card-unary" class="btn-primary" style="text-decoration: none; text-align: center;">
+            Test in Interactive Console
+          </a>
+        </div>
+      </div>
+
+      <!-- Card 2: Server Streaming RPC -->
+      <div class="card" id="card-ss">
+        <div class="card-top">
+          <div class="card-title-group">
+            <h2>
+              Server Streaming
+              <span class="pattern-badge badge-ss">TrackOrder</span>
+            </h2>
+            <p>Single request initiates a continuous event stream via Server-Sent Events.</p>
+          </div>
+        </div>
+        <div class="card-content">
+          <div class="contract-bar">
+            <div class="endpoint-display">
+              <span class="method-tag tag-get">GET</span>
+              <span>/api/grpc/track/<strong>:orderId</strong></span>
+            </div>
+            <span class="proto-sig">rpc TrackOrder(TrackOrderRequest) returns (stream TrackOrderResponse)</span>
+          </div>
+          <div class="console-box">
+            <div class="console-topbar">
+              <span class="console-label">PROTOBUF DEFINITION</span>
+            </div>
+            <div class="console-content">
+<pre>// Server Streaming Pattern
+message TrackOrderRequest {
+  string order_id = 1;
+}
+
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED      = 0;
+  ORDER_STATUS_RECEIVED         = 1;
+  ORDER_STATUS_PROCESSING       = 2;
+  ORDER_STATUS_PACKED           = 3;
+  ORDER_STATUS_SHIPPED          = 4;
+  ORDER_STATUS_OUT_FOR_DELIVERY = 5;
+  ORDER_STATUS_DELIVERED        = 6;
+  ORDER_STATUS_FAILED           = 7;
+}
+
+message TrackOrderResponse {
+  string      order_id  = 1;
+  OrderStatus status    = 2;
+  string      message   = 3;
+  string      timestamp = 4;
+  int32       progress  = 5; // 0–100
+}
+
+// Curl Test:
+curl -N http://localhost:3000/api/grpc/track/ORD-001</pre>
+            </div>
+          </div>
+          <a href="/#card-ss" class="btn-primary" style="text-decoration: none; text-align: center;">
+            Test in Interactive Console
+          </a>
+        </div>
+      </div>
+
+      <!-- Card 3: Client Streaming RPC -->
+      <div class="card" id="card-cs">
+        <div class="card-top">
+          <div class="card-title-group">
+            <h2>
+              Client Streaming
+              <span class="pattern-badge badge-cs">RecordMetrics</span>
+            </h2>
+            <p>Client streams multiple metric items; server computes and returns one aggregate summary.</p>
+          </div>
+        </div>
+        <div class="card-content">
+          <div class="contract-bar">
+            <div class="endpoint-display">
+              <span class="method-tag tag-post">POST</span>
+              <span>/api/grpc/metrics</span>
+            </div>
+            <span class="proto-sig">rpc RecordMetrics(stream RecordMetricsRequest) returns (RecordMetricsResponse)</span>
+          </div>
+          <div class="console-box">
+            <div class="console-topbar">
+              <span class="console-label">PROTOBUF DEFINITION</span>
+            </div>
+            <div class="console-content">
+<pre>// Client Streaming Pattern
+message RecordMetricsRequest {
+  string metric_name = 1;
+  double value       = 2;
+  string unit        = 3;
+  string timestamp   = 4;
+}
+
+message RecordMetricsResponse {
+  int32  total_pings   = 1;
+  double average_value = 2;
+  double min_value     = 3;
+  double max_value     = 4;
+  double total_value   = 5;
+  string processed_at  = 6;
+}
+
+// Curl Test:
+curl -X POST http://localhost:3000/api/grpc/metrics \
+  -H "Content-Type: application/json" \
+  -d '{"pings":[{"metric_name":"cpu","value":45,"unit":"%"}]}'</pre>
+            </div>
+          </div>
+          <a href="/#card-cs" class="btn-primary" style="text-decoration: none; text-align: center;">
+            Test in Interactive Console
+          </a>
+        </div>
+      </div>
+
+      <!-- Card 4: Bidirectional Streaming RPC -->
+      <div class="card" id="card-bidi">
+        <div class="card-top">
+          <div class="card-title-group">
+            <h2>
+              Bidirectional Streaming
+              <span class="pattern-badge badge-bidi">LiveSupport</span>
+            </h2>
+            <p>Full-duplex stream where client and server exchange messages independently.</p>
+          </div>
+        </div>
+        <div class="card-content">
+          <div class="contract-bar">
+            <div class="endpoint-display">
+              <span class="method-tag tag-post">POST</span>
+              <span>/api/grpc/support/chat</span>
+            </div>
+            <span class="proto-sig">rpc LiveSupport(stream LiveSupportRequest) returns (stream LiveSupportResponse)</span>
+          </div>
+          <div class="console-box">
+            <div class="console-topbar">
+              <span class="console-label">PROTOBUF DEFINITION</span>
+            </div>
+            <div class="console-content">
+<pre>// Bidi Streaming Pattern
+message LiveSupportRequest {
+  string sender    = 1;
+  string text      = 2;
+  string timestamp = 3;
+  bool   is_bot    = 4;
+}
+
+message LiveSupportResponse {
+  string sender    = 1;
+  string text      = 2;
+  string timestamp = 3;
+  bool   is_bot    = 4;
+}
+
+// Curl Test:
+curl -X POST http://localhost:3000/api/grpc/support/chat \
+  -H "Content-Type: application/json" \
+  -d '{"sender":"Alice","messages":["hello","order","ORD-001"]}'</pre>
+            </div>
+          </div>
+          <a href="/#card-bidi" class="btn-primary" style="text-decoration: none; text-align: center;">
+            Test in Interactive Console
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── FOOTER ── -->
+    <footer class="footer">
+      <div>
+        <span>Scaflo gRPC Example · Static Schema Reference</span>
+      </div>
+      <div>
+        <a href="/">Launch Interactive Console</a>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

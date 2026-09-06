@@ -1,0 +1,31 @@
+
+proto/ecommerce.proto
+ — The contract (service and message definitions)
+
+
+src/data/mockData.ts
+ — The sample data store
+
+
+src/grpc/handlers.ts
+ — Server logic implementing the 4 RPC patterns
+
+
+src/grpc/server.ts
+ — gRPC server setup and port binding (50051)
+
+
+src/grpc/client.ts
+ — Client stubs and TypeScript wrappers
+
+
+src/testRunner.ts
+ — CLI script testing all 4 patterns directly
+
+
+src/server.ts
+ — Express API gateway bridging HTTP/SSE to gRPC (3000)
+
+
+public/index.html
+ — Interactive browser UI
